@@ -1,0 +1,121 @@
+name: Vercel • Auto Bootstrap & Deploy
+
+on:
+  push:
+    branches: ["**"]           # 任意分支推送都触发
+  workflow_dispatch: {}        # 需要时手动触发
+
+permissions:
+  contents: read
+
+env:
+  # =============== 必填：按需修改 ===============
+  VERCEL_SCOPE:  ${{ secrets.VERCEL_SCOPE }}
+  VERCEL_TOKEN:  ${{ secrets.VERCEL_TOKEN }}
+
+  # 以 “仓库名” 作为 Vercel 项目名（也可自定义）
+  PROJECT_NAME:  ${{ github.event.repository.name }}
+
+  # monorepo 时：指定子目录。单项目留空即可（""）
+  PROJECT_ROOT:  ""            # 例: "apps/web" 或 "frontend"
+  # ============================================
+
+jobs:
+  bootstrap-and-deploy:
+    if: ${{ github.event.repository.is_template == false }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Resolve working directory (monorepo support)
+        id: path
+        run: |
+          WD="${{ env.PROJECT_ROOT }}"
+          if [ -z "$WD" ]; then WD="."; fi
+          echo "wd=$WD" >> "$GITHUB_OUTPUT"
+
+      # 1) 检查项目是否已存在；不存在则创建
+      - name: Ensure Vercel project exists (create if missing)
+        working-directory: ${{ steps.path.outputs.wd }}
+        env:
+          VERCEL_SCOPE:  ${{ env.VERCEL_SCOPE }}
+          VERCEL_TOKEN:  ${{ env.VERCEL_TOKEN }}
+          PROJECT_NAME:  ${{ env.PROJECT_NAME }}
+        run: |
+          set -euo pipefail
+          SCOPE_ARG=""
+          if [ -n "${VERCEL_SCOPE:-}" ]; then
+            SCOPE_ARG="--scope $VERCEL_SCOPE"
+          fi
+
+          if vercel project inspect "$PROJECT_NAME" --token "$VERCEL_TOKEN" $SCOPE_ARG > /dev/null 2>&1; then
+            echo "Project exists ✅"
+          else
+            echo "Creating project: $PROJECT_NAME"
+            vercel project add "$PROJECT_NAME" --token "$VERCEL_TOKEN" $SCOPE_ARG
+            echo "Project created ✅"
+          fi
+
+      # 2) 关联当前目录到该 Vercel 项目
+      - name: Link to Vercel project
+        working-directory: ${{ steps.path.outputs.wd }}
+        env:
+          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+        run: vercel link --project "${{ env.PROJECT_NAME }}" --yes --token "$VERCEL_TOKEN"
+
+      # 3) 注入环境变量（development/preview/production 三套）
+      #    —— 按需添加或删减；建议把值放到 GitHub Secrets
+      - name: Set Vercel environment variables
+        working-directory: ${{ steps.path.outputs.wd }}
+        env:
+          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+          PROJECT_NAME: ${{ env.PROJECT_NAME }}
+
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          # ⚠️ 如确需服务端高权限，再打开下一行；不建议放到全局 Secrets
+          # SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          add () {
+            local KEY="$1"; local VAL="$2"
+            [ -z "${VAL}" ] && { echo "Skip $KEY (empty)"; return 0; }
+            for ENV in development preview production; do
+              echo "$VAL" | vercel env add "$KEY" "$ENV" --token "$VERCEL_TOKEN" || true
+            done
+          }
+          add NEXT_PUBLIC_SUPABASE_URL      "$NEXT_PUBLIC_SUPABASE_URL"
+          add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+
+      # 4) 依赖安装 + 构建（可按项目需要调整）
+      - name: Install deps
+        working-directory: ${{ steps.path.outputs.wd }}
+        run: npm ci
+
+      - name: Build
+        working-directory: ${{ steps.path.outputs.wd }}
+        run: npm run build --if-present
+
+      # 5) 预览部署；main 分支再发生产
+      - name: Deploy Preview to Vercel
+        working-directory: ${{ steps.path.outputs.wd }}
+        env:
+          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+        run: vercel --token "$VERCEL_TOKEN"
+
+      - name: Deploy Production on main
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ steps.path.outputs.wd }}
+        env:
+          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+        run: vercel --prod --yes --token "$VERCEL_TOKEN"
