@@ -83,6 +83,7 @@ jobs:
 
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # ⚠️ 如确需服务端高权限，再打开下一行；不建议放到全局 Secrets
           # SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
@@ -96,6 +97,7 @@ jobs:
           }
           add NEXT_PUBLIC_SUPABASE_URL      "$NEXT_PUBLIC_SUPABASE_URL"
           add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          add OPENAI_API_KEY "$OPENAI_API_KEY"
 
       # 4) 依赖安装 + 构建（可按项目需要调整）
       - name: Install deps
