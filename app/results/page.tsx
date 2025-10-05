@@ -4,7 +4,6 @@ import {
   calculateAnswerScore,
   calculateDimensionScores,
   calculateTotalScore,
-  getScoreLabel,
 } from '@/lib/scoring';
 import { generateBossEvaluation } from '@/lib/openai';
 import { BossDimension } from '@/types/database';
