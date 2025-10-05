@@ -35,7 +35,7 @@ export default async function QuestionnairePage({ params, searchParams }: PagePr
       return <div>Error loading questions</div>;
     }
 
-    questionIds = data.map((q: any) => q.id);
+    questionIds = data.map((q) => q.id);
   } else {
     // No questions in URL and not step 1, redirect to start
     redirect('/questionnaire/1');
