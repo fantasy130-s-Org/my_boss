@@ -101,7 +101,7 @@ export default function ResultsDisplay({
             <div className="bg-orange-50 rounded-lg p-4 mb-6">
               <p className="text-gray-700">
                 你的老板被全国{' '}
-                <span className="text-2xl font-bold text-orange-600">{100 - percentile}%</span>{' '}
+                <span className="text-2xl font-bold text-orange-600">{Math.round(100 - percentile)}%</span>{' '}
                 的老板打败
               </p>
             </div>
