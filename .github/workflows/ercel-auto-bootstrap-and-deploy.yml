@@ -99,16 +99,7 @@ jobs:
           add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
           add OPENAI_API_KEY "$OPENAI_API_KEY"
 
-      # 4) 依赖安装 + 构建（按项目需要调整）
-      - name: Install deps
-        working-directory: ${{ steps.path.outputs.wd }}
-        run: npm ci
-
-      - name: Build
-        working-directory: ${{ steps.path.outputs.wd }}
-        run: npm run build --if-present
-
-      # 5) 预览部署；main 分支再发生产
+      # 4) 预览部署；main 分支再发生产
       - name: Deploy Preview to Vercel
         working-directory: ${{ steps.path.outputs.wd }}
         env:
