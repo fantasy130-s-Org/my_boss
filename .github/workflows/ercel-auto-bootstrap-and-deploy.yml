@@ -99,7 +99,7 @@ jobs:
           add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
           add OPENAI_API_KEY "$OPENAI_API_KEY"
 
-      # 4) 依赖安装 + 构建（可按项目需要调整）
+      # 4) 依赖安装 + 构建（按项目需要调整）
       - name: Install deps
         working-directory: ${{ steps.path.outputs.wd }}
         run: npm ci
