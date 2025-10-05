@@ -32,11 +32,11 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  // Search for evaluations with matching boss identifier
+  // Search for evaluations with exact matching boss identifier
   const { data: evaluations, error } = await supabase
     .from('evaluations')
     .select('*')
-    .ilike('boss_identifier', `%${query}%`)
+    .eq('boss_identifier', query)
     .order('created_at', { ascending: false });
 
   if (error) {
